@@ -2,57 +2,86 @@ using UnityEngine;
 
 public class PlatformerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 7f;
-    [SerializeField] private float jumpForce = 12f;
-    
+    [Header("Movement")]
+    public float moveSpeed = 7f;
+    public float jumpForce = 12f;
+
+    [Header("Sprint")]
+    public float sprintMultiplier = 1.5f; // just a speed boost
+
     [Header("Ground Check")]
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private float groundCheckRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
-    
+    public Transform groundCheck;
+    public float groundCheckRadius = 0.2f;
+    public LayerMask groundLayer;
+
+    [Header("Jump Settings")]
+    public int maxJumps = 2;       // 1 ground jump + 1 air jump
+    public float coyoteTime = 0.2f;
+    private float coyoteCounter;
+    private int jumpCount;
+
     private Rigidbody2D rb;
-    private bool isGrounded;
     private float moveInput;
-    
+    private bool isGrounded;
+
+    // platform parenting
+    private Transform _originalParent;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        
-        // Set to Dynamic with gravity
-        rb.bodyType = RigidbodyType2D.Dynamic;
-        rb.gravityScale = 3f;
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation; // 👈 stops tipping over
+        _originalParent = transform.parent;
     }
-    
+
     void Update()
     {
-        // Get horizontal input
+        // Movement input
         moveInput = Input.GetAxisRaw("Horizontal");
-        
-        // Check if grounded
+
+        // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-        
-        // Jump input
-        if (Input.GetButtonDown("Jump") && isGrounded)
+
+        if (isGrounded)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            jumpCount = 0;
+            coyoteCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteCounter -= Time.deltaTime;
+        }
+
+        // Jump
+        if (Input.GetButtonDown("Jump"))
+        {
+            if (coyoteCounter > 0f || jumpCount < maxJumps - 1)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                jumpCount++;
+                coyoteCounter = 0f;
+            }
         }
     }
-    
+
     void FixedUpdate()
     {
-        // Apply horizontal movement
-        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+        // Apply movement with sprint multiplier
+        bool sprinting = Input.GetKey(KeyCode.LeftShift);
+        float speed = sprinting ? moveSpeed * sprintMultiplier : moveSpeed;
+
+        rb.linearVelocity = new Vector2(moveInput * speed, rb.linearVelocity.y);
     }
-    
-    // Visualise ground check in editor
-    void OnDrawGizmosSelected()
+
+    // --- Platform parenting methods ---
+    public void SetParent(Transform newParent)
     {
-        if (groundCheck != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
-        }
+        _originalParent = transform.parent;
+        transform.SetParent(newParent);
+    }
+
+    public void ResetParent()
+    {
+        transform.SetParent(_originalParent);
     }
 }
