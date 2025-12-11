@@ -7,7 +7,7 @@ public class PlatformerController : MonoBehaviour
     public float jumpForce = 12f;
 
     [Header("Sprint")]
-    public float sprintMultiplier = 1.5f; // just a speed boost
+    public float sprintMultiplier = 1.5f;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -15,7 +15,7 @@ public class PlatformerController : MonoBehaviour
     public LayerMask groundLayer;
 
     [Header("Jump Settings")]
-    public int maxJumps = 2;       // 1 ground jump + 1 air jump
+    public int maxJumps = 2;
     public float coyoteTime = 0.2f;
     private float coyoteCounter;
     private int jumpCount;
@@ -30,16 +30,14 @@ public class PlatformerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation; // 👈 stops tipping over
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         _originalParent = transform.parent;
     }
 
     void Update()
     {
-        // Movement input
         moveInput = Input.GetAxisRaw("Horizontal");
 
-        // Ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         if (isGrounded)
@@ -52,12 +50,11 @@ public class PlatformerController : MonoBehaviour
             coyoteCounter -= Time.deltaTime;
         }
 
-        // Jump
         if (Input.GetButtonDown("Jump"))
         {
             if (coyoteCounter > 0f || jumpCount < maxJumps - 1)
             {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce); // FIXED
                 jumpCount++;
                 coyoteCounter = 0f;
             }
@@ -66,11 +63,10 @@ public class PlatformerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Apply movement with sprint multiplier
         bool sprinting = Input.GetKey(KeyCode.LeftShift);
         float speed = sprinting ? moveSpeed * sprintMultiplier : moveSpeed;
 
-        rb.linearVelocity = new Vector2(moveInput * speed, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(moveInput * speed, rb.linearVelocity.y); // FIXED
     }
 
     // --- Platform parenting methods ---
